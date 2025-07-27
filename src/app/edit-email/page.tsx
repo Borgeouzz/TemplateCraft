@@ -161,35 +161,51 @@ export default function EditEmailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link
-                href="/"
-                className="flex items-center text-gray-600 hover:text-gray-900"
+                href="/dashboard"
+                className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Home
+                Back to Dashboard
               </Link>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Edit Your Email
-              </h1>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  ✨ Edit Your Email
+                </h1>
+                <p className="text-sm text-gray-600">
+                  Fine-tune your AI-generated email
+                </p>
+              </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={copyToClipboard}>
+              <Button
+                variant="outline"
+                onClick={copyToClipboard}
+                className="bg-white/80 hover:bg-white"
+              >
                 <Copy className="w-4 h-4 mr-2" />
                 Copy
               </Button>
-              <Button variant="outline" onClick={downloadAsText}>
+              <Button
+                variant="outline"
+                onClick={downloadAsText}
+                className="bg-white/80 hover:bg-white"
+              >
                 <Download className="w-4 h-4 mr-2" />
                 Download
               </Button>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button onClick={openSendDialog}>
+                  <Button
+                    onClick={openSendDialog}
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                  >
                     <Send className="w-4 h-4 mr-2" />
                     Send Email
                   </Button>
@@ -299,79 +315,123 @@ export default function EditEmailPage() {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle>Your Generated Email</CardTitle>
-              <CardDescription>
-                Edit your email content below. You can copy it to your clipboard
-                or download it when you're satisfied.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                value={emailContent}
-                onChange={(e) => setEmailContent(e.target.value)}
-                className="min-h-[400px] text-base font-mono"
-                placeholder="Your email content will appear here..."
-              />
+        <div className="max-w-6xl mx-auto">
+          <div className="grid lg:grid-cols-3 gap-8">
+            {/* Email Editor - Takes up 2 columns */}
+            <div className="lg:col-span-2">
+              <Card className="bg-white/80 backdrop-blur-sm shadow-xl border-0">
+                <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
+                  <CardTitle className="flex items-center gap-2">
+                    <Mail className="w-5 h-5" />
+                    Your Generated Email
+                  </CardTitle>
+                  <CardDescription className="text-blue-100">
+                    Edit your email content below. Make it perfect!
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <Textarea
+                    value={emailContent}
+                    onChange={(e) => setEmailContent(e.target.value)}
+                    className="min-h-[500px] text-base font-mono border-2 border-gray-200 focus:border-blue-500 rounded-lg resize-none"
+                    placeholder="Your email content will appear here..."
+                  />
+                </CardContent>
+              </Card>
+            </div>
 
-              <div className="flex flex-col sm:flex-row gap-4 mt-6">
-                <Button onClick={copyToClipboard} className="flex-1">
-                  <Copy className="w-4 h-4 mr-2" />
-                  Copy to Clipboard
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={downloadAsText}
-                  className="flex-1"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download as Text
-                </Button>
-                <Button
-                  onClick={openSendDialog}
-                  className="flex-1 bg-green-600 hover:bg-green-700"
-                >
-                  <Send className="w-4 h-4 mr-2" />
-                  Send Email
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={generateAnother}
-                  className="flex-1"
-                >
-                  <Wand2 className="w-4 h-4 mr-2" />
-                  Generate Another
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+            {/* Actions Panel - Takes up 1 column */}
+            <div className="space-y-6">
+              {/* Quick Actions */}
+              <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Wand2 className="w-5 h-5 text-purple-600" />
+                    Quick Actions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Button
+                    onClick={copyToClipboard}
+                    className="w-full justify-start"
+                    variant="outline"
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy to Clipboard
+                  </Button>
+                  <Button
+                    onClick={downloadAsText}
+                    className="w-full justify-start"
+                    variant="outline"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download as Text
+                  </Button>
+                  <Button
+                    onClick={openSendDialog}
+                    className="w-full justify-start bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    Send Email
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={generateAnother}
+                    className="w-full justify-start"
+                  >
+                    <Wand2 className="w-4 h-4 mr-2" />
+                    Generate Another
+                  </Button>
+                </CardContent>
+              </Card>
 
-          {/* Upgrade Prompt */}
-          <Card className="mt-6 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Want to generate more emails?
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  You've used your free email generation. Sign up to get
-                  unlimited access to our AI email generator.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Link href="/sign-up">
-                    <Button className="bg-blue-600 hover:bg-blue-700">
-                      Sign Up for Free
-                    </Button>
-                  </Link>
-                  <Link href="#pricing">
-                    <Button variant="outline">View Pricing</Button>
-                  </Link>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              {/* Email Stats */}
+              <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
+                <CardHeader>
+                  <CardTitle className="text-lg">Email Stats</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Word Count:</span>
+                    <span className="font-medium">
+                      {emailContent.split(" ").length}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Characters:</span>
+                    <span className="font-medium">{emailContent.length}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Lines:</span>
+                    <span className="font-medium">
+                      {emailContent.split("\n").length}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Reading Time:</span>
+                    <span className="font-medium">
+                      {Math.ceil(emailContent.split(" ").length / 200)} min
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Tips */}
+              <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="text-lg text-yellow-800">
+                    💡 Pro Tips
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-yellow-700 space-y-2">
+                  <p>• Keep your subject line under 50 characters</p>
+                  <p>• Use a clear call-to-action</p>
+                  <p>• Personalize when possible</p>
+                  <p>• Proofread before sending</p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       </div>
     </div>
