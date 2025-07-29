@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Button } from "./ui/button";
-import { UserCircle, Home, History, Wand2 } from "lucide-react";
+import { UserCircle, Home, History, Wand2, Send } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function DashboardNavbar() {
@@ -29,6 +29,12 @@ export default function DashboardNavbar() {
             <Button variant="ghost" className="flex items-center gap-2">
               <Wand2 className="h-4 w-4" />
               Generate
+            </Button>
+          </Link>
+          <Link href="/send-email">
+            <Button variant="ghost" className="flex items-center gap-2">
+              <Send className="h-4 w-4" />
+              Send Email
             </Button>
           </Link>
           <Link href="/generated-emails">

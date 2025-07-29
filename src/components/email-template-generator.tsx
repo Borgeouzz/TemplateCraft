@@ -169,12 +169,63 @@ Best regards,
           </p>
         </div>
 
-        <div className="max-w-6xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* Input Section */}
-            <div className="space-y-6">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+        <div className="max-w-7xl mx-auto">
+          {/* Main Email Generation Area */}
+          <div className="grid lg:grid-cols-4 gap-6">
+            {/* Generated Email Preview - Primary Focus */}
+            <div className="lg:col-span-3">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-full">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-semibold text-gray-900">
+                    Generated Email
+                  </h2>
+                  {generatedEmail && (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={copyToClipboard}
+                        className="flex items-center gap-2"
+                      >
+                        <Copy className="w-4 h-4" />
+                        Copy
+                      </Button>
+                      <Button
+                        onClick={editEmail}
+                        className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+                      >
+                        <Send className="w-4 h-4" />
+                        Edit & Send
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                {generatedEmail ? (
+                  <div className="bg-gray-50 p-6 rounded-lg border min-h-[500px]">
+                    <pre className="whitespace-pre-wrap text-base text-gray-800 font-mono leading-relaxed">
+                      {generatedEmail}
+                    </pre>
+                  </div>
+                ) : (
+                  <div className="text-center py-20 text-gray-500 min-h-[500px] flex flex-col justify-center">
+                    <div className="bg-gray-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <Wand2 className="w-10 h-10 text-gray-400" />
+                    </div>
+                    <h3 className="text-xl font-medium text-gray-700 mb-3">
+                      Ready to Generate
+                    </h3>
+                    <p className="text-gray-500 max-w-md mx-auto text-lg">
+                      Enter your email description in the sidebar and click
+                      generate to create your professional email template
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Input Section - Sidebar */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                   <Wand2 className="w-5 h-5 text-blue-600" />
                   Describe Your Email
                 </h2>
@@ -192,17 +243,17 @@ Best regards,
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
                       placeholder={placeholderText}
-                      className="min-h-[200px] text-base p-4 border-2 border-gray-200 focus:border-blue-500 rounded-lg resize-none"
+                      className="min-h-[200px] resize-none"
                       disabled={isGenerating}
                     />
                   </div>
                 </div>
 
-                <div className="flex gap-3 mt-6">
+                <div className="flex flex-col gap-2 mt-4">
                   <Button
                     onClick={generateEmail}
                     disabled={isGenerating || !prompt.trim()}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2"
                   >
                     {isGenerating ? (
                       <>
@@ -219,63 +270,11 @@ Best regards,
                   <Button
                     variant="outline"
                     onClick={resetForm}
-                    className="px-6 py-3"
+                    className="w-full py-2"
                   >
                     Reset
                   </Button>
                 </div>
-              </div>
-            </div>
-
-            {/* Preview Section */}
-            <div className="space-y-6">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    Generated Email
-                  </h2>
-                  {generatedEmail && (
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={copyToClipboard}
-                        className="text-sm"
-                      >
-                        <Copy className="w-4 h-4 mr-1" />
-                        Copy
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={editEmail}
-                        className="bg-blue-600 hover:bg-blue-700 text-white text-sm"
-                      >
-                        <Send className="w-4 h-4 mr-1" />
-                        Edit & Send
-                      </Button>
-                    </div>
-                  )}
-                </div>
-                {generatedEmail ? (
-                  <div className="bg-gray-50 p-4 rounded-lg border">
-                    <pre className="whitespace-pre-wrap text-sm text-gray-800 font-mono leading-relaxed">
-                      {generatedEmail}
-                    </pre>
-                  </div>
-                ) : (
-                  <div className="text-center py-12 text-gray-500">
-                    <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Wand2 className="w-8 h-8 text-gray-400" />
-                    </div>
-                    <h3 className="text-lg font-medium text-gray-700 mb-2">
-                      Ready to Generate
-                    </h3>
-                    <p className="text-gray-500 max-w-sm mx-auto">
-                      Enter your email description and click generate to create
-                      your professional email template
-                    </p>
-                  </div>
-                )}
               </div>
             </div>
           </div>
