@@ -5,6 +5,7 @@ import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { sendEmailRequest } from "@/utils/utils";
 import {
   Select,
   SelectContent,
@@ -91,24 +92,8 @@ export default function EmailTemplateGenerator() {
     setIsGenerating(true);
 
     try {
-      // Simulate AI generation with a delay
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-
       // Generate email based on the prompt
-      const emailContent = `Subject: Professional Email
-
-Dear Recipient,
-
-I hope this email finds you well.
-
-${prompt}
-
-I would appreciate your prompt attention to this matter. Please let me know if you need any additional information or have any questions.
-
-Thank you for your time and consideration.
-
-Best regards,
-[Your Name]`;
+      const emailContent = await sendEmailRequest(prompt);
 
       setGeneratedEmail(emailContent);
 
