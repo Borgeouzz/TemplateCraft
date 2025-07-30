@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,8 +23,32 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import DashboardNavbar from "@/components/dashboard-navbar";
-import { sendEmailAction, generateEmailAction } from "../actions";
-import { Mail, Wand2, Send, Copy, RefreshCw, Paperclip, X } from "lucide-react";
+import {
+  sendEmailAction,
+  generateEmailAction,
+  saveContactAction,
+} from "../actions";
+import { createClient } from "../../../supabase/client";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Mail,
+  Wand2,
+  Send,
+  Copy,
+  RefreshCw,
+  Paperclip,
+  X,
+  UserPlus,
+  Users,
+} from "lucide-react";
 
 const emailCategories = {
   business: {
@@ -80,7 +105,26 @@ export default function SendEmailPage() {
   const [isSending, setIsSending] = useState(false);
   const [mode, setMode] = useState<"compose" | "generate">("compose");
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
+  const [contactName, setContactName] = useState("");
+  const [isSavingContact, setIsSavingContact] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
   const { toast } = useToast();
+  const supabase = createClient();
+
+  // Load user email on component mount
+  React.useEffect(() => {
+    const loadUserEmail = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user?.email) {
+        setUserEmail(user.email);
+        setFormData((prev) => ({ ...prev, fromEmail: user.email }));
+      }
+    };
+    loadUserEmail();
+  }, [supabase]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -237,6 +281,49 @@ export default function SendEmailPage() {
     }
   };
 
+  const saveContact = async () => {
+    if (!formData.toEmail) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter an email address first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSavingContact(true);
+    try {
+      const formDataForContact = new FormData();
+      formDataForContact.append("email", formData.toEmail);
+      formDataForContact.append("name", contactName);
+
+      const result = await saveContactAction(formDataForContact);
+
+      if (result.success) {
+        toast({
+          title: "Contact Saved!",
+          description: result.message || "Contact has been saved successfully.",
+        });
+        setIsContactDialogOpen(false);
+        setContactName("");
+      } else {
+        toast({
+          title: "Save Failed",
+          description: result.error || "Failed to save contact.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Save Failed",
+        description: "Failed to save contact. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingContact(false);
+    }
+  };
+
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(formData.emailContent);
@@ -328,7 +415,82 @@ export default function SendEmailPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="toEmail">To Email *</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="toEmail">To Email *</Label>
+                      {formData.toEmail && (
+                        <Dialog
+                          open={isContactDialogOpen}
+                          onOpenChange={setIsContactDialogOpen}
+                        >
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center gap-1"
+                            >
+                              <UserPlus className="h-3 w-3" />
+                              Save Contact
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader>
+                              <DialogTitle>Save Contact</DialogTitle>
+                              <DialogDescription>
+                                Save this email address to your contact list for
+                                easy access.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="contact-email">Email</Label>
+                                <Input
+                                  id="contact-email"
+                                  value={formData.toEmail}
+                                  disabled
+                                  className="bg-gray-50"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="contact-name">
+                                  Name (Optional)
+                                </Label>
+                                <Input
+                                  id="contact-name"
+                                  placeholder="Contact name"
+                                  value={contactName}
+                                  onChange={(e) =>
+                                    setContactName(e.target.value)
+                                  }
+                                />
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button
+                                variant="outline"
+                                onClick={() => {
+                                  setIsContactDialogOpen(false);
+                                  setContactName("");
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                onClick={saveContact}
+                                disabled={isSavingContact}
+                                className="flex items-center gap-2"
+                              >
+                                {isSavingContact ? (
+                                  <RefreshCw className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <UserPlus className="h-4 w-4" />
+                                )}
+                                {isSavingContact ? "Saving..." : "Save Contact"}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                    </div>
                     <Input
                       id="toEmail"
                       type="email"

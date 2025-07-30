@@ -231,6 +231,63 @@ Best regards,
   return emailContent;
 }
 
+export const saveContactAction = async (formData: FormData) => {
+  const email = formData.get("email")?.toString();
+  const name = formData.get("name")?.toString();
+  const supabase = await createClient();
+
+  if (!email) {
+    return {
+      success: false,
+      error: "Email is required",
+    };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      success: false,
+      error: "User not authenticated",
+    };
+  }
+
+  // Check if contact already exists
+  const { data: existingContact } = await supabase
+    .from("contacts")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("email", email)
+    .single();
+
+  if (existingContact) {
+    return {
+      success: false,
+      error: "Contact already exists",
+    };
+  }
+
+  const { error } = await supabase.from("contacts").insert({
+    user_id: user.id,
+    email: email,
+    name: name || null,
+  });
+
+  if (error) {
+    return {
+      success: false,
+      error: "Failed to save contact",
+    };
+  }
+
+  return {
+    success: true,
+    message: "Contact saved successfully",
+  };
+};
+
 export const sendEmailAction = async (formData: FormData) => {
   const nodemailer = require("nodemailer");
 
