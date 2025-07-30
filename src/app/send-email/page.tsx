@@ -23,7 +23,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import DashboardNavbar from "@/components/dashboard-navbar";
 import { sendEmailAction, generateEmailAction } from "../actions";
-import { Mail, Wand2, Send, Copy, RefreshCw } from "lucide-react";
+import { Mail, Wand2, Send, Copy, RefreshCw, Paperclip, X } from "lucide-react";
 
 const emailCategories = {
   business: {
@@ -79,10 +79,43 @@ export default function SendEmailPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [mode, setMode] = useState<"compose" | "generate">("compose");
+  const [attachments, setAttachments] = useState<File[]>([]);
   const { toast } = useToast();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files) {
+      const newFiles = Array.from(files);
+      // Check file size (limit to 10MB per file)
+      const oversizedFiles = newFiles.filter(
+        (file) => file.size > 10 * 1024 * 1024,
+      );
+      if (oversizedFiles.length > 0) {
+        toast({
+          title: "File Too Large",
+          description: "Please select files smaller than 10MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setAttachments((prev) => [...prev, ...newFiles]);
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   const generateEmail = async () => {
@@ -155,6 +188,15 @@ export default function SendEmailPage() {
         formDataForSending.append(key, value);
       });
 
+      // Add attachments to form data
+      attachments.forEach((file, index) => {
+        formDataForSending.append(`attachment_${index}`, file);
+      });
+      formDataForSending.append(
+        "attachmentCount",
+        attachments.length.toString(),
+      );
+
       const result = await sendEmailAction(formDataForSending);
 
       if (result.success) {
@@ -175,6 +217,7 @@ export default function SendEmailPage() {
         setSelectedCategory("");
         setSelectedSubcategory("");
         setAdditionalContext("");
+        setAttachments([]);
       } else {
         toast({
           title: "Send Failed",
@@ -306,6 +349,57 @@ export default function SendEmailPage() {
                         handleInputChange("subject", e.target.value)
                       }
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="attachments">Attachments</Label>
+                    <div className="space-y-2">
+                      <Input
+                        id="attachments"
+                        type="file"
+                        multiple
+                        onChange={handleFileChange}
+                        className="cursor-pointer"
+                        accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.zip,.rar"
+                      />
+                      <p className="text-xs text-gray-500">
+                        Maximum file size: 10MB per file
+                      </p>
+
+                      {attachments.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-gray-700">
+                            Attached Files ({attachments.length}):
+                          </p>
+                          <div className="space-y-1">
+                            {attachments.map((file, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center justify-between bg-gray-50 p-2 rounded-md"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Paperclip className="h-4 w-4 text-gray-500" />
+                                  <span className="text-sm text-gray-700">
+                                    {file.name}
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    ({formatFileSize(file.size)})
+                                  </span>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeAttachment(index)}
+                                  className="h-6 w-6 p-0 hover:bg-red-100"
+                                >
+                                  <X className="h-3 w-3 text-red-500" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

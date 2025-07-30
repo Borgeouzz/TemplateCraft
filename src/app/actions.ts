@@ -239,6 +239,9 @@ export const sendEmailAction = async (formData: FormData) => {
   const fromName = formData.get("fromName")?.toString();
   const subject = formData.get("subject")?.toString();
   const emailContent = formData.get("emailContent")?.toString();
+  const attachmentCount = parseInt(
+    formData.get("attachmentCount")?.toString() || "0",
+  );
 
   if (!toEmail || !fromEmail || !subject || !emailContent) {
     return {
@@ -267,6 +270,20 @@ export const sendEmailAction = async (formData: FormData) => {
       },
     });
 
+    // Process attachments
+    const attachments = [];
+    for (let i = 0; i < attachmentCount; i++) {
+      const file = formData.get(`attachment_${i}`) as File;
+      if (file) {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        attachments.push({
+          filename: file.name,
+          content: buffer,
+          contentType: file.type,
+        });
+      }
+    }
+
     // Send email
     await transporter.sendMail({
       from: `"${fromName || "Email Generator"}" <${fromEmail}>`,
@@ -274,11 +291,15 @@ export const sendEmailAction = async (formData: FormData) => {
       subject: subject,
       text: emailContent,
       html: emailContent.replace(/\n/g, "<br>"),
+      attachments: attachments,
     });
 
     return {
       success: true,
-      message: "Email sent successfully!",
+      message:
+        attachments.length > 0
+          ? `Email sent successfully with ${attachments.length} attachment(s)!`
+          : "Email sent successfully!",
     };
   } catch (error) {
     console.error("Email sending error:", error);

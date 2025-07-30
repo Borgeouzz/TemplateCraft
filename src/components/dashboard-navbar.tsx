@@ -26,7 +26,7 @@ export default function DashboardNavbar() {
         </div>
         <div className="flex gap-4 items-center">
           <Link href="/generate">
-            <Button variant="ghost" className="flex items-center gap-2">
+            <Button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 flex items-center gap-2">
               <Wand2 className="h-4 w-4" />
               Generate
             </Button>
