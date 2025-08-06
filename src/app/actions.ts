@@ -288,6 +288,16 @@ export const saveContactAction = async (formData: FormData) => {
   };
 };
 
+export const getUserAction = async () => {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  return user;
+};
+
 export const sendEmailAction = async (formData: FormData) => {
   const nodemailer = require("nodemailer");
 

@@ -22,7 +22,7 @@ export default async function Signup(props: {
   }
 
   return (
-    <>
+    <div className="bg-white">
       <Navbar />
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4 relative overflow-hidden">
         {/* Animated background elements */}
@@ -47,132 +47,134 @@ export default async function Signup(props: {
 
           <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl shadow-blue-500/10">
             <form className="flex flex-col space-y-6">
-            <div className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="full_name" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                  <User className="w-4 h-4 text-blue-600" />
-                  Full Name
-                </Label>
-                <Input
-                  id="full_name"
-                  name="full_name"
-                  type="text"
-                  placeholder="John Doe"
-                  required
-                  className="w-full h-12 pl-4 pr-4 bg-gray-50/50 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:bg-gray-50"
-                />
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="full_name" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <User className="w-4 h-4 text-blue-600" />
+                    Full Name
+                  </Label>
+                  <Input
+                    id="full_name"
+                    name="full_name"
+                    type="text"
+                    placeholder="John Doe"
+                    required
+                    className="w-full h-12 pl-4 pr-4 bg-gray-50/50 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:bg-gray-50"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-blue-600" />
+                    Email Address
+                  </Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    required
+                    className="w-full h-12 pl-4 pr-4 bg-gray-50/50 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:bg-gray-50"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-blue-600" />
+                    Password
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    name="password"
+                    placeholder="Create a strong password"
+                    minLength={6}
+                    required
+                    className="w-full h-12 pl-4 pr-4 bg-gray-50/50 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:bg-gray-50"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-blue-600" />
-                  Email Address
-                </Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  required
-                  className="w-full h-12 pl-4 pr-4 bg-gray-50/50 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:bg-gray-50"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-blue-600" />
-                  Password
-                </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  name="password"
-                  placeholder="Create a strong password"
-                  minLength={6}
-                  required
-                  className="w-full h-12 pl-4 pr-4 bg-gray-50/50 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:bg-gray-50"
-                />
-              </div>
-            </div>
-
-            <SubmitButton
-              formAction={signUpAction}
-              pendingText="Creating account..."
-              className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
-            >
-              Create Account
-            </SubmitButton>
-
-            <FormMessage message={searchParams} />
-          </form>
-
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500">Or continue with</span>
-            </div>
-          </div>
-
-          {/* Social Login Buttons */}
-          <div className="space-y-3">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full h-12 border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-3"
-              onClick={() => {
-                // TODO: Implement Google OAuth
-                console.log('Google sign up clicked');
-              }}
-            >
-              <Chrome className="w-5 h-5 text-red-500" />
-              <span className="font-medium text-gray-700">Continue with Google</span>
-            </Button>
-            
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full h-12 border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-3"
-              onClick={() => {
-                // TODO: Implement GitHub OAuth
-                console.log('GitHub sign up clicked');
-              }}
-            >
-              <Github className="w-5 h-5 text-gray-800" />
-              <span className="font-medium text-gray-700">Continue with GitHub</span>
-            </Button>
-            
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full h-12 border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-3"
-              onClick={() => {
-                // TODO: Implement Apple OAuth
-                console.log('Apple sign up clicked');
-              }}
-            >
-              <Apple className="w-5 h-5 text-gray-800" />
-              <span className="font-medium text-gray-700">Continue with Apple</span>
-            </Button>
-          </div>
-
-          {/* Sign in link */}
-          <div className="mt-8 text-center">
-            <p className="text-gray-600">
-              Already have an account?{" "}
-              <Link
-                className="text-blue-600 hover:text-blue-800 font-semibold hover:underline transition-all duration-200"
-                href="/sign-in"
+              <SubmitButton
+                formAction={signUpAction}
+                pendingText="Creating account..."
+                className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
               >
-                Sign In
-              </Link>
-            </p>
+                Create Account
+              </SubmitButton>
+
+              <FormMessage message={searchParams} />
+            </form>
+
+            {/* Divider */}
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-white text-gray-500">Or continue with</span>
+              </div>
+            </div>
+
+            {/* Social Login Buttons */}
+            <div className="space-y-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-12 border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-3"
+                onClick={() => {
+                  // TODO: Implement Google OAuth
+                  console.log('Google sign up clicked');
+                }}
+              >
+                <Chrome className="w-5 h-5 text-red-500" />
+                <span className="font-medium text-gray-700">Continue with Google</span>
+              </Button>
+              
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-12 border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-3"
+                onClick={() => {
+                  // TODO: Implement GitHub OAuth
+                  console.log('GitHub sign up clicked');
+                }}
+              >
+                <Github className="w-5 h-5 text-gray-800" />
+                <span className="font-medium text-gray-700">Continue with GitHub</span>
+              </Button>
+              
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-12 border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-3"
+                onClick={() => {
+                  // TODO: Implement Apple OAuth
+                  console.log('Apple sign up clicked');
+                }}
+              >
+                <Apple className="w-5 h-5 text-gray-800" />
+                <span className="font-medium text-gray-700">Continue with Apple</span>
+              </Button>
+            </div>
+
+            {/* Sign in link */}
+            <div className="mt-8 text-center">
+              <p className="text-gray-600">
+                Already have an account?{" "}
+                <Link
+                  className="text-blue-600 hover:text-blue-800 font-semibold hover:underline transition-all duration-200"
+                  href="/sign-in"
+                >
+                  Sign In
+                </Link>
+              </p>
+            </div>
           </div>
+          <SmtpMessage />
         </div>
-        <SmtpMessage />
       </div>
-    </>
+    </div>
   );
+}
 }
