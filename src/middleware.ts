@@ -1,52 +1,25 @@
-import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export async function middleware(req: NextRequest) {
+export function middleware(req: NextRequest) {
   const res = NextResponse.next()
+  const token = req.cookies.get('auth_token')?.value
+  const { pathname } = req.nextUrl
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return req.cookies.getAll().map(({ name, value }) => ({
-            name,
-            value,
-          }))
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            req.cookies.set(name, value)
-            res.cookies.set(name, value, options)
-          })
-        },
-      },
+  const protectedPrefixes = ['/dashboard', '/generated-emails', '/inbox', '/send-email', '/edit-email']
+  if (protectedPrefixes.some((p) => pathname.startsWith(p))) {
+    if (!token) {
+      return NextResponse.redirect(new URL('/sign-in', req.url))
     }
-  )
+  }
 
-  // Refresh session if expired - required for Server Components
-  const { data: { session }, error } = await supabase.auth.getSession()
-
-  if (error) {
-    // Auth session error handling without console.error
+  if ((pathname === '/sign-in' || pathname === '/sign-up') && token) {
+    return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 
   return res
 }
 
-// Ensure the middleware is only called for relevant paths
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public (public files)
-     * - api/polar/webhook (webhook endpoints)
-     */
-    '/((?!_next/static|_next/image|favicon.ico|public|api/payments/webhook).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|public|api/payments/webhook).*)'],
 }

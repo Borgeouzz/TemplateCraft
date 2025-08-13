@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
-import { checkUserSubscription } from '@/app/actions';
-import { createClient } from '../../supabase/server';
+import { cookies } from 'next/headers';
+// import { checkUserSubscription } from '@/app/actions'; // TODO: enable when API supports subscriptions
 
 interface SubscriptionCheckProps {
     children: React.ReactNode;
@@ -11,18 +11,10 @@ export async function SubscriptionCheck({
     children,
     redirectTo = '/pricing'
 }: SubscriptionCheckProps) {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
+    const token = (await cookies()).get('auth_token')?.value;
+    if (!token) {
         redirect('/sign-in');
     }
-
-    const isSubscribed = await checkUserSubscription(user?.id!);
-
-    if (!isSubscribed) {
-        redirect(redirectTo);
-    }
-
+    // Temporaneamente non effettuiamo il controllo abbonamento, in attesa dell'endpoint API
     return <>{children}</>;
 }

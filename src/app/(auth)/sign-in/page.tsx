@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Navbar from "@/components/navbar";
 import { Chrome, Github, Apple, LogIn, Mail, Lock } from "lucide-react";
+import { FcGoogle } from "react-icons/fc";
 
 interface LoginProps {
   searchParams: Message;
@@ -119,11 +120,13 @@ export default function SignInPage({ searchParams }: LoginProps) {
                 variant="outline"
                 className="w-full h-12 border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-3"
                 onClick={() => {
-                  // TODO: Implement Google OAuth
-                  console.log("Google sign in clicked");
+                  const returnUrl = encodeURIComponent(
+                    "http://localhost:3000/auth/callback?redirect_to=%2Fdashboard"
+                  );
+                  window.location.href = `http://localhost:8000/api/v1/auth/gmail/login?return_url=${returnUrl}`;
                 }}
               >
-                <Chrome className="w-5 h-5 text-red-500" />
+                <FcGoogle className="w-5 h-5 text-red-500" />
                 <span className="font-medium text-gray-700">
                   Continue with Google
                 </span>

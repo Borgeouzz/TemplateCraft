@@ -1,21 +1,27 @@
-import React from "react";
-import { updateSession } from "./supabase/middleware";
-import { type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
-export async function middleware(request: NextRequest) {
-  return await updateSession(request);
+export function middleware(request: NextRequest) {
+  const token = request.cookies.get("auth_token")?.value;
+  const { pathname } = request.nextUrl;
+
+  // Protected routes: redirect to sign-in if not authenticated
+  const protectedPrefixes = ["/dashboard", "/generated-emails", "/inbox", "/send-email", "/edit-email"]; 
+  if (protectedPrefixes.some((p) => pathname.startsWith(p))) {
+    if (!token) {
+      return NextResponse.redirect(new URL("/sign-in", request.url));
+    }
+  }
+
+  // If already authenticated, avoid auth pages
+  if ((pathname === "/sign-in" || pathname === "/sign-up") && token) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - images - .svg, .png, .jpg, .jpeg, .gif, .webp
-     * Feel free to modify this pattern to include more paths.
-     */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|public|api/payments/webhook).*)",
   ],
 };

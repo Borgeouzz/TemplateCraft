@@ -5,7 +5,7 @@ import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { sendEmailRequest } from "@/utils/utils";
+import { sendEmailRequest } from "@/lib/email_service";
 import {
   Select,
   SelectContent,

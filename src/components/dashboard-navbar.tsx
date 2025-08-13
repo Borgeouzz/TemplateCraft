@@ -11,6 +11,7 @@ import {
 import { Button } from "./ui/button";
 import { UserCircle, Home, History, Wand2, Send, Inbox } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { signOutAction } from "@/app/actions";
 
 export default function DashboardNavbar() {
   const supabase = createClient();
@@ -58,8 +59,7 @@ export default function DashboardNavbar() {
             <DropdownMenuContent align="end">
               <DropdownMenuItem
                 onClick={async () => {
-                  await supabase.auth.signOut();
-                  router.push("/");
+                  await signOutAction();
                 }}
               >
                 Sign out

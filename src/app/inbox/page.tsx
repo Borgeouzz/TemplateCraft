@@ -41,6 +41,8 @@ import { Toaster } from "@/components/ui/toaster";
 import DashboardNavbar from "@/components/dashboard-navbar";
 import { createClient } from "../../../supabase/client";
 import { sendEmailAction } from "../actions";
+import { fetchGoogleMessages, fetchGoogleMessagesPage, fetchGoogleMessageFull, markEmailAsRead, resolveBackendUserIdByEmail } from "@/lib/email_service";
+import { useSearchParams } from "next/navigation";
 
 interface Email {
   id: string;
@@ -55,66 +57,12 @@ interface Email {
   isArchived: boolean;
 }
 
-// Mock email data - In a real app, this would come from your email provider API
-const mockEmails: Email[] = [
-  {
-    id: "1",
-    from: "john.doe@example.com",
-    fromName: "John Doe",
-    to: "user@example.com",
-    subject: "Meeting Follow-up",
-    content:
-      "Hi there,\n\nI wanted to follow up on our meeting yesterday. Could we schedule a call for next week to discuss the project details?\n\nBest regards,\nJohn",
-    receivedAt: "2024-01-15T10:30:00Z",
-    isRead: false,
-    isStarred: true,
-    isArchived: false,
-  },
-  {
-    id: "2",
-    from: "support@company.com",
-    fromName: "Company Support",
-    to: "user@example.com",
-    subject: "Your Order Confirmation #12345",
-    content:
-      "Dear Customer,\n\nThank you for your order! Your order #12345 has been confirmed and will be processed within 24 hours.\n\nOrder Details:\n- Product: Premium Package\n- Amount: $99.99\n- Delivery: 3-5 business days\n\nIf you have any questions, please don't hesitate to contact us.\n\nBest regards,\nSupport Team",
-    receivedAt: "2024-01-14T14:20:00Z",
-    isRead: true,
-    isStarred: false,
-    isArchived: false,
-  },
-  {
-    id: "3",
-    from: "newsletter@techblog.com",
-    fromName: "Tech Blog",
-    to: "user@example.com",
-    subject: "Weekly Tech Newsletter - AI Trends",
-    content:
-      "Hello Tech Enthusiast!\n\nThis week's newsletter covers the latest trends in AI and machine learning:\n\n1. GPT-4 Updates and New Features\n2. AI in Healthcare: Recent Breakthroughs\n3. Machine Learning Best Practices\n\nRead more on our website.\n\nHappy coding!\nTech Blog Team",
-    receivedAt: "2024-01-13T09:15:00Z",
-    isRead: true,
-    isStarred: false,
-    isArchived: false,
-  },
-  {
-    id: "4",
-    from: "hr@mycompany.com",
-    fromName: "HR Department",
-    to: "user@example.com",
-    subject: "Important: Policy Update",
-    content:
-      "Dear Team,\n\nWe're writing to inform you about an important update to our company policies, effective immediately.\n\nKey Changes:\n- Remote work policy updates\n- New vacation request process\n- Updated security guidelines\n\nPlease review the attached documents and confirm your understanding by replying to this email.\n\nThank you,\nHR Team",
-    receivedAt: "2024-01-12T16:45:00Z",
-    isRead: false,
-    isStarred: false,
-    isArchived: false,
-  },
-];
-
 export default function InboxPage() {
-  const [emails, setEmails] = useState<Email[]>(mockEmails);
-  const [filteredEmails, setFilteredEmails] = useState<Email[]>(mockEmails);
+  const [emails, setEmails] = useState<Email[]>([]);
+  const [filteredEmails, setFilteredEmails] = useState<Email[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
+  const [isLoadingContent, setIsLoadingContent] = useState<boolean>(false);
+  const [selectedEmailHtml, setSelectedEmailHtml] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState<"all" | "unread" | "starred">("all");
   const [isReplyDialogOpen, setIsReplyDialogOpen] = useState(false);
@@ -123,8 +71,14 @@ export default function InboxPage() {
   const [isSendingReply, setIsSendingReply] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [userName, setUserName] = useState("");
+  const [backendUserId, setBackendUserId] = useState<number | null>(null);
+  const [isLoadingEmails, setIsLoadingEmails] = useState<boolean>(false);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
+  const [emailsError, setEmailsError] = useState<string>("");
   const { toast } = useToast();
   const supabase = createClient();
+  const searchParams = useSearchParams();
 
   // Load user data on component mount
   useEffect(() => {
@@ -142,10 +96,223 @@ export default function InboxPage() {
           .single();
 
         setUserName(userData?.name || userData?.full_name || "User");
+
+        // If we don't already have a backend user id, try resolving it automatically by email
+        const existingCookieUserId = getCookie("emailrag_user_id");
+        const existingLocalUserId = typeof window !== 'undefined' ? localStorage.getItem("emailrag_user_id") : null;
+        if (!existingCookieUserId && !existingLocalUserId) {
+          const resolved = await resolveBackendUserIdByEmail(user.email);
+          if (resolved) {
+            try { document.cookie = `emailrag_user_id=${resolved}; path=/; samesite=lax`; } catch {}
+            try { localStorage.setItem("emailrag_user_id", String(resolved)); } catch {}
+            setBackendUserId(resolved);
+            void fetchAndSetEmails(resolved);
+          }
+        }
       }
     };
     loadUserData();
   }, [supabase]);
+
+  // Helpers
+  const getCookie = (name: string): string | null => {
+    if (typeof document === "undefined") return null;
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop()!.split(";").shift() || null;
+    return null;
+  };
+
+  const getEmailRagBaseUrl = (): string => {
+    return (
+      process.env.NEXT_PUBLIC_EMAILRAG_API_URL || "http://localhost:8000/api/v1"
+    );
+  };
+
+  // Optional: infinite scroll via IntersectionObserver
+  useEffect(() => {
+    const container = document.getElementById("email-scroll-container");
+    if (!container) return;
+    const onScroll = () => {
+      const nearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 200;
+      if (nearBottom && nextPageToken && !isLoadingMore) {
+        void loadMoreEmails();
+      }
+    };
+    container.addEventListener("scroll", onScroll);
+    return () => container.removeEventListener("scroll", onScroll);
+  }, [nextPageToken, isLoadingMore, backendUserId]);
+
+  const startGmailConnect = () => {
+    try {
+      const base = getEmailRagBaseUrl().replace(/\/api\/v1$/, "");
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const callback = `${origin}/auth/callback?redirect_to=/inbox`;
+      const url = `${base}/api/v1/auth/gmail/login?return_url=${encodeURIComponent(
+        callback,
+      )}`;
+      window.location.href = url;
+    } catch (e) {
+      toast({ title: "Unable to start Google login", variant: "destructive" });
+    }
+  };
+
+  // Load backend user id from cookie, then query string, then localStorage; then fetch Gmail emails
+  useEffect(() => {
+    let resolvedUserId: number | null = null;
+    // 1) Cookie set by auth callback
+    const cookieUserId = getCookie("emailrag_user_id");
+    if (cookieUserId && !Number.isNaN(Number(cookieUserId))) {
+      resolvedUserId = Number(cookieUserId);
+      try { localStorage.setItem("emailrag_user_id", String(resolvedUserId)); } catch {}
+    }
+    // 2) Query param fallback
+    if (!resolvedUserId) {
+      const maybeUserIdParam = searchParams?.get("user_id");
+      if (maybeUserIdParam && !Number.isNaN(Number(maybeUserIdParam))) {
+        resolvedUserId = Number(maybeUserIdParam);
+        try { localStorage.setItem("emailrag_user_id", String(resolvedUserId)); } catch {}
+      }
+    }
+    // 3) LocalStorage fallback
+    if (!resolvedUserId) {
+      try {
+        const fromStorage = localStorage.getItem("emailrag_user_id");
+        if (fromStorage && !Number.isNaN(Number(fromStorage))) {
+          resolvedUserId = Number(fromStorage);
+        }
+      } catch {}
+    }
+
+    if (resolvedUserId) {
+      setBackendUserId(resolvedUserId);
+      void fetchAndSetEmails(resolvedUserId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  const fetchAndSetEmails = async (userId: number) => {
+    setIsLoadingEmails(true);
+    setEmailsError("");
+    try {
+      const page = await fetchGoogleMessagesPage(userId, { maxResults: 20, q: "label:INBOX" });
+      const mapped: Email[] = page.messages
+        .map(transformGmailMessageToEmail)
+        .filter(Boolean) as Email[];
+      setEmails(mapped);
+      setNextPageToken(page.nextPageToken || null);
+      setSelectedEmail((prev) =>
+        prev ? mapped.find((e) => e.id === prev.id) || null : null,
+      );
+    } catch (e: any) {
+      setEmailsError(e?.message || "Failed to load emails");
+      // Fallback: keep current emails (possibly mocks)
+    } finally {
+      setIsLoadingEmails(false);
+    }
+  };
+
+  const loadMoreEmails = async () => {
+    if (!backendUserId || !nextPageToken || isLoadingMore) return;
+    setIsLoadingMore(true);
+    try {
+      const page = await fetchGoogleMessagesPage(backendUserId, { maxResults: 20, pageToken: nextPageToken, q: "label:INBOX" });
+      const mapped: Email[] = page.messages
+        .map(transformGmailMessageToEmail)
+        .filter(Boolean) as Email[];
+      setEmails((prev) => [...prev, ...mapped]);
+      setNextPageToken(page.nextPageToken || null);
+    } catch (e: any) {
+      setEmailsError(e?.message || "Failed to load more emails");
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  function transformGmailMessageToEmail(msg: any): Email | null {
+    if (!msg) return null;
+
+    const headers: Array<{ name: string; value: string }> =
+      msg?.payload?.headers || [];
+    const getHeader = (name: string): string => {
+      const h = headers.find(
+        (x) => x.name?.toLowerCase() === name.toLowerCase(),
+      );
+      return h?.value || "";
+    };
+    const fromHeader = msg.from || getHeader("From");
+    const toHeader = msg.to || getHeader("To");
+    const subjectHeader = (msg.subject || getHeader("Subject") || "(no subject)");
+    const dateMs = Number(msg.internalDate || 0);
+    const labelIds: string[] = msg.labelIds || [];
+
+    // Extract name and email from From header if available: "Name <email@x>"
+    let fromName: string | undefined = undefined;
+    let fromEmail: string = fromHeader || "";
+    const match = fromHeader.match(/^(.*)\s*<([^>]+)>$/);
+    if (match) {
+      fromName = match[1].replace(/"/g, "").trim();
+      fromEmail = match[2].trim();
+    }
+
+    const decodeBase64UrlToUtf8 = (data?: string): string => {
+      if (!data) return "";
+      try {
+        let base64 = data.replace(/-/g, "+").replace(/_/g, "/");
+        const padding = base64.length % 4;
+        if (padding) base64 += "=".repeat(4 - padding);
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        return new TextDecoder("utf-8").decode(bytes);
+      } catch {
+        return "";
+      }
+    };
+
+    const flattenParts = (part: any): any[] => {
+      if (!part) return [];
+      if (part.parts && Array.isArray(part.parts)) {
+        return part.parts.flatMap((p: any) => flattenParts(p));
+      }
+      return [part];
+    };
+
+    const payload = msg.payload || {};
+    const leafParts = flattenParts(payload);
+    let bodyData: string | undefined;
+    const htmlPart = leafParts.find((p) => p.mimeType === "text/html");
+    const textPart = leafParts.find((p) => p.mimeType === "text/plain");
+    if (htmlPart?.body?.data) bodyData = htmlPart.body.data;
+    else if (textPart?.body?.data) bodyData = textPart.body.data;
+    else if (payload?.body?.data) bodyData = payload.body.data;
+
+    // Prefer HTML; if only text, wrap as preformatted HTML
+    let decodedBody = decodeBase64UrlToUtf8(bodyData);
+    if (!decodedBody && msg.snippet) decodedBody = msg.snippet;
+    if (!htmlPart && decodedBody) {
+      decodedBody = `<pre style="white-space:pre-wrap;font-family:inherit">${decodedBody
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")}</pre>`;
+    }
+
+    const email: Email = {
+      id: msg.id,
+      from: fromEmail || fromHeader || "",
+      fromName,
+      to: toHeader || "",
+      subject: subjectHeader,
+      content: decodedBody,
+      receivedAt: dateMs
+        ? new Date(dateMs).toISOString()
+        : new Date().toISOString(),
+      isRead: !labelIds.includes("UNREAD"),
+      isStarred: labelIds.includes("STARRED"),
+      isArchived: false,
+    };
+    return email;
+  }
 
   // Filter emails based on search and filter criteria
   useEffect(() => {
@@ -204,10 +371,13 @@ export default function InboxPage() {
   };
 
   const markAsRead = (emailId: string) => {
+    if (backendUserId) {
+      void markEmailAsRead(emailId, backendUserId);
+    }
     setEmails((prev) =>
       prev.map((email) =>
-        email.id === emailId ? { ...email, isRead: true } : email,
-      ),
+        email.id === emailId ? { ...email, isRead: true } : email
+      )
     );
   };
 
@@ -306,10 +476,32 @@ export default function InboxPage() {
     }
   };
 
-  const selectEmail = (email: Email) => {
+  const selectEmail = async (email: Email) => {
     setSelectedEmail(email);
+    setIsLoadingContent(true);
+    setSelectedEmailHtml("");
     if (!email.isRead) {
       markAsRead(email.id);
+    }
+    // Fetch full message to ensure subject/body are accurate
+    if (backendUserId) {
+      try {
+        const full = await fetchGoogleMessageFull(backendUserId, email.id);
+        const detailed = transformGmailMessageToEmail(full);
+        if (detailed) {
+          setSelectedEmail((prev) => (prev && prev.id === email.id ? { ...prev, ...detailed } : prev));
+          setSelectedEmailHtml(detailed.content || email.content || "");
+        } else {
+          setSelectedEmailHtml(email.content || "");
+        }
+      } catch {
+        setSelectedEmailHtml(email.content || "");
+      } finally {
+        setIsLoadingContent(false);
+      }
+    } else {
+      setSelectedEmailHtml(email.content || "");
+      setIsLoadingContent(false);
     }
   };
 
@@ -356,8 +548,21 @@ export default function InboxPage() {
             <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0 h-full">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Messages</CardTitle>
-                  <div className="flex gap-2">
+              <CardTitle className="text-lg">Messages</CardTitle>
+                  <div className="flex gap-2 items-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (backendUserId) {
+                          void fetchAndSetEmails(backendUserId);
+                        }
+                      }}
+                      className="items-center gap-1"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${isLoadingEmails ? "animate-spin" : ""}`} />
+                      Refresh
+                    </Button>
                     <Button
                       variant={filter === "all" ? "default" : "ghost"}
                       size="sm"
@@ -392,14 +597,24 @@ export default function InboxPage() {
                 </div>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="max-h-[calc(100vh-350px)] overflow-y-auto">
-                  {filteredEmails.length === 0 ? (
+                <div className="max-h-[calc(100vh-350px)] overflow-y-auto" id="email-scroll-container">
+                  {!backendUserId ? (
+                    <div className="p-6 text-center text-gray-700">
+                      <p className="mb-3">Collega il tuo account Gmail per visualizzare i messaggi.</p>
+                      <Button onClick={startGmailConnect}>Collega Google</Button>
+                    </div>
+                  ) : emailsError ? (
+                    <div className="p-6 text-center text-red-600 text-sm">{emailsError}</div>
+                  ) : isLoadingEmails ? (
+                    <div className="p-6 text-center text-gray-500 text-sm">Loading emails...</div>
+                  ) : filteredEmails.length === 0 ? (
                     <div className="p-6 text-center text-gray-500">
                       <Mail className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                       <p>No emails found</p>
                     </div>
                   ) : (
-                    filteredEmails.map((email) => (
+                    <>
+                    {filteredEmails.map((email) => (
                       <div
                         key={email.id}
                         onClick={() => selectEmail(email)}
@@ -437,9 +652,7 @@ export default function InboxPage() {
                             >
                               {email.subject}
                             </p>
-                            <p className="text-xs text-gray-500 truncate">
-                              {email.content.substring(0, 60)}...
-                            </p>
+                            
                           </div>
                           <div className="flex flex-col items-end gap-1 ml-2">
                             <span className="text-xs text-gray-500">
@@ -448,7 +661,16 @@ export default function InboxPage() {
                           </div>
                         </div>
                       </div>
-                    ))
+                    ))}
+                    {nextPageToken && (
+                      <div className="p-4 flex justify-center">
+                        <Button variant="outline" size="sm" onClick={loadMoreEmails} disabled={isLoadingMore} className="items-center gap-2">
+                          {isLoadingMore && <RefreshCw className="w-4 h-4 animate-spin" />}
+                          Load more
+                        </Button>
+                      </div>
+                    )}
+                    </>
                   )}
                 </div>
               </CardContent>
@@ -601,9 +823,23 @@ export default function InboxPage() {
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="max-h-[calc(100vh-400px)] overflow-y-auto">
-                    <pre className="whitespace-pre-wrap text-gray-800 leading-relaxed font-sans">
-                      {selectedEmail.content}
-                    </pre>
+                    {isLoadingContent ? (
+                      <div className="space-y-3 animate-pulse">
+                        <div className="h-4 bg-gray-200 rounded w-3/4" />
+                        <div className="h-4 bg-gray-200 rounded w-5/6" />
+                        <div className="h-4 bg-gray-200 rounded w-2/3" />
+                        <div className="h-4 bg-gray-200 rounded w-4/5" />
+                        <div className="h-4 bg-gray-200 rounded w-1/2" />
+                      </div>
+                    ) : (
+                      <iframe
+                        title="email-content"
+                        sandbox=""
+                        referrerPolicy="no-referrer"
+                        srcDoc={`<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><style>body{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif; color:#111827; line-height:1.5; padding:16px;} img{max-width:100%; height:auto;} table{max-width:100%;} pre{white-space:pre-wrap;} a{color:#2563eb;}</style></head><body>${selectedEmailHtml}</body></html>`}
+                        style={{ width: '100%', height: '70vh', border: 'none', background: 'white' }}
+                      />
+                    )}
                   </div>
                 </CardContent>
               </Card>

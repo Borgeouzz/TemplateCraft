@@ -1,6 +1,6 @@
 import DashboardNavbar from "@/components/dashboard-navbar";
-import { createClient } from "../../../supabase/server";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { SubscriptionCheck } from "@/components/subscription-check";
 import {
   Card,
@@ -52,13 +52,8 @@ const recentEmails = [
 ];
 
 export default async function Dashboard() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+  const token = (await cookies()).get("auth_token")?.value;
+  if (!token) {
     return redirect("/sign-in");
   }
 
